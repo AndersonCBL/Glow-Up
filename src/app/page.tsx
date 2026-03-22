@@ -92,9 +92,17 @@ export default function Home() {
     } else if (typeof text === 'object' && text !== null) {
       textToCopy = Object.entries(text)
         .map(([key, value]) => {
-          // Se for array (ex: cenas), formata como lista
+          // Se for array (ex: cenas), formata como lista legível
           if (Array.isArray(value)) {
-            const formattedList = value.map((item, index) => `${index + 1}. ${typeof item === 'object' ? JSON.stringify(item) : item}`).join('\n');
+            const formattedList = value.map((item, index) => {
+              if (typeof item === 'object' && item !== null) {
+                const itemDetails = Object.entries(item)
+                  .map(([subKey, subValue]) => `  • ${subKey.replace(/_/g, ' ').toUpperCase()}: ${subValue}`)
+                  .join('\n');
+                return `Cena ${index + 1}:\n${itemDetails}`;
+              }
+              return `${index + 1}. ${item}`;
+            }).join('\n\n');
             return `--- ${translateKey(key).toUpperCase()} ---\n${formattedList}`;
           }
           
@@ -149,14 +157,26 @@ export default function Home() {
                       ))}
                     </div>
                   ) : Array.isArray(value) ? (
-                    <ul className="space-y-2 list-none pl-0">
+                    <div className="space-y-4">
                       {value.map((item, index) => (
-                        <li key={index} className="flex gap-3 text-sm bg-white/50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
-                           <span className="font-bold text-[#E7A1B0] opacity-70">{String(index + 1).padStart(2, '0')}</span>
-                           <span>{typeof item === 'object' ? JSON.stringify(item) : item}</span>
-                        </li>
+                        <div key={index} className="bg-white/50 dark:bg-slate-900/50 p-4 rounded-lg border border-slate-100 dark:border-slate-800">
+                          <h5 className="font-bold text-[#E7A1B0] mb-2 flex items-center gap-2">
+                            <Video className="w-4 h-4" /> Cena {index + 1}
+                          </h5>
+                          {typeof item === 'object' && item !== null ? (
+                            <div className="space-y-2 text-sm">
+                              {Object.entries(item).map(([subKey, subValue]) => (
+                                <p key={subKey} className="leading-relaxed">
+                                  <strong className="text-slate-900 dark:text-slate-100 capitalize">{subKey.replace(/_/g, ' ')}:</strong> {String(subValue)}
+                                </p>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm leading-relaxed">{String(item)}</p>
+                          )}
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   ) : (
                     <p className="text-sm leading-relaxed whitespace-pre-wrap">{String(value)}</p>
                   )}
