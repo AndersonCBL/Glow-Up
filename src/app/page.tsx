@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Copy, Check, Sparkles, Instagram, Video, MessageCircle } from "lucide-react";
+import { Loader2, Copy, Check, Sparkles, Instagram, Video, MessageCircle, Mic, Type, Eye, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/ModeToggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,6 +77,14 @@ export default function Home() {
     return key.replace(/_/g, ' ');
   };
 
+  const getIconForKey = (key: string) => {
+    const normalizedKey = key.toLowerCase().trim();
+    if (normalizedKey.includes('visual') || normalizedKey.includes('cena')) return <Eye className="w-4 h-4 mr-2" />;
+    if (normalizedKey.includes('voice') || normalizedKey.includes('audio') || normalizedKey.includes('locução')) return <Mic className="w-4 h-4 mr-2" />;
+    if (normalizedKey.includes('text') || normalizedKey.includes('texto')) return <Type className="w-4 h-4 mr-2" />;
+    return <Video className="w-4 h-4 mr-2" />;
+  };
+
   const copyToClipboard = (text: string | Record<string, unknown>, field: string) => {
     let textToCopy = "";
     if (typeof text === 'string') {
@@ -84,8 +92,14 @@ export default function Home() {
     } else if (typeof text === 'object' && text !== null) {
       textToCopy = Object.entries(text)
         .map(([key, value]) => {
+          // Se for array (ex: cenas), formata como lista
+          if (Array.isArray(value)) {
+            const formattedList = value.map((item, index) => `${index + 1}. ${typeof item === 'object' ? JSON.stringify(item) : item}`).join('\n');
+            return `--- ${translateKey(key).toUpperCase()} ---\n${formattedList}`;
+          }
+          
           const displayValue = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
-          return `${translateKey(key).toUpperCase()}:\n${displayValue}`;
+          return `--- ${translateKey(key).toUpperCase()} ---\n${displayValue}`;
         })
         .join('\n\n');
     }
@@ -102,17 +116,51 @@ export default function Home() {
     
     if (typeof script === 'object' && script !== null) {
       return (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {Object.entries(script).map(([key, value]) => {
-            // Se o valor for um array ou objeto (ex: lista de cenas), converte para string
-            const displayValue = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+            const translatedKey = translateKey(key);
+            const isVisualIdeas = key.toLowerCase().includes('visual');
+            const isTextOverlay = key.toLowerCase().includes('text');
             
             return (
-              <div key={key} className="border-b border-slate-200 dark:border-slate-800 pb-3 last:border-0 last:pb-0">
-                <h4 className="text-sm font-semibold text-[#E7A1B0] mb-1 capitalize">
-                  {translateKey(key)}
+              <div key={key} className="bg-white/40 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+                <h4 className="text-sm font-bold text-[#E7A1B0] mb-3 uppercase tracking-wider flex items-center">
+                  {getIconForKey(key)}
+                  {translatedKey}
                 </h4>
-                <p className="text-slate-700 dark:text-slate-300">{displayValue}</p>
+                
+                <div className="text-slate-700 dark:text-slate-300">
+                  {/* Tratamento para Strings Simples com quebras de linha (comum em Ideias Visuais) */}
+                  {typeof value === 'string' && isVisualIdeas && value.includes('Cena') ? (
+                    <div className="space-y-3 pl-2 border-l-2 border-[#E7A1B0]/30 ml-2">
+                      {value.split(/(?=Cena \d+:|Início:|Final:)/i).map((cena, i) => (
+                        <div key={i} className="flex gap-3">
+                          <span className="text-[#E7A1B0] mt-1"><Clock className="w-3 h-3" /></span>
+                          <p className="text-sm leading-relaxed">{cena.trim()}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : typeof value === 'string' && isTextOverlay && value.includes('?') ? (
+                    <div className="space-y-2">
+                      {value.split(/(?=\b[A-Z])/).filter(t => t.length > 3).map((texto, i) => (
+                         <div key={i} className="bg-[#E7A1B0]/10 dark:bg-[#E7A1B0]/5 px-3 py-2 rounded-lg border-l-2 border-[#E7A1B0] text-sm">
+                           &quot;{texto.trim()}&quot;
+                         </div>
+                      ))}
+                    </div>
+                  ) : Array.isArray(value) ? (
+                    <ul className="space-y-2 list-none pl-0">
+                      {value.map((item, index) => (
+                        <li key={index} className="flex gap-3 text-sm bg-white/50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                           <span className="font-bold text-[#E7A1B0] opacity-70">{String(index + 1).padStart(2, '0')}</span>
+                           <span>{typeof item === 'object' ? JSON.stringify(item) : item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{String(value)}</p>
+                  )}
+                </div>
               </div>
             );
           })}
