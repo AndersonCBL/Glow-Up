@@ -17,7 +17,7 @@ import {
 
 interface GeneratedContent {
   insta_caption: string;
-  reels_script: string | Record<string, string>;
+  reels_script: string | Record<string, unknown>;
   wa_message: string;
 }
 
@@ -59,13 +59,34 @@ export default function Home() {
     }
   };
 
-  const copyToClipboard = (text: string | Record<string, string>, field: string) => {
+  const translateKey = (key: string) => {
+    const translations: Record<string, string> = {
+      'visual_ideas': 'Ideias Visuais',
+      'text_on_screen': 'Texto na Tela',
+      'voice_over_script': 'Locução (Áudio)',
+      'visual': 'Visual',
+      'audio': 'Áudio',
+      'caption': 'Legenda'
+    };
+    
+    const normalizedKey = key.toLowerCase().trim();
+    if (translations[normalizedKey]) {
+      return translations[normalizedKey];
+    }
+    
+    return key.replace(/_/g, ' ');
+  };
+
+  const copyToClipboard = (text: string | Record<string, unknown>, field: string) => {
     let textToCopy = "";
     if (typeof text === 'string') {
       textToCopy = text;
     } else if (typeof text === 'object' && text !== null) {
       textToCopy = Object.entries(text)
-        .map(([key, value]) => `${key.replace(/_/g, ' ').toUpperCase()}:\n${value}`)
+        .map(([key, value]) => {
+          const displayValue = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+          return `${translateKey(key).toUpperCase()}:\n${displayValue}`;
+        })
         .join('\n\n');
     }
 
@@ -74,7 +95,7 @@ export default function Home() {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const renderReelsScript = (script: string | Record<string, string>) => {
+  const renderReelsScript = (script: string | Record<string, unknown>) => {
     if (typeof script === 'string') {
       return script;
     }
@@ -82,14 +103,19 @@ export default function Home() {
     if (typeof script === 'object' && script !== null) {
       return (
         <div className="space-y-4">
-          {Object.entries(script).map(([key, value]) => (
-            <div key={key} className="border-b border-slate-200 dark:border-slate-800 pb-3 last:border-0 last:pb-0">
-              <h4 className="text-sm font-semibold text-[#E7A1B0] mb-1 capitalize">
-                {key.replace(/_/g, ' ')}
-              </h4>
-              <p className="text-slate-700 dark:text-slate-300">{value}</p>
-            </div>
-          ))}
+          {Object.entries(script).map(([key, value]) => {
+            // Se o valor for um array ou objeto (ex: lista de cenas), converte para string
+            const displayValue = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+            
+            return (
+              <div key={key} className="border-b border-slate-200 dark:border-slate-800 pb-3 last:border-0 last:pb-0">
+                <h4 className="text-sm font-semibold text-[#E7A1B0] mb-1 capitalize">
+                  {translateKey(key)}
+                </h4>
+                <p className="text-slate-700 dark:text-slate-300">{displayValue}</p>
+              </div>
+            );
+          })}
         </div>
       );
     }
